@@ -335,7 +335,7 @@ being pure made the move a one-line import change.
 
 ### Two classes the catalog could not spell, and now can
 
-`COVERAGE.md` §3 recorded two technique classes that fell out of the corpus and
+`COVERAGE.md` §4 recorded two technique classes that fell out of the corpus and
 that pt could reach only because `traversal-full.txt` happened to contain
 primitives already written that way: **`percent-u`** (`%u2215`, `%u005c` — the
 non-standard Microsoft/IIS escape) and **`nested-percent`** (`%%32%66`, `%%35%63` —

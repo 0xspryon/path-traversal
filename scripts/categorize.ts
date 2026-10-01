@@ -176,8 +176,6 @@ const LANGUAGE_RULES: ReadonlyArray<LanguageRule> = [
       "expect:",
       "data://",
       "glob:",
-      ".htaccess",
-      ".htpasswd",
       "composer.json",
       "composer.lock",
       "/vendor/autoload",
@@ -336,6 +334,22 @@ const AGENT_MARKERS = [
 ] as const
 
 const DEVOPS_MARKERS = [
+  // Web-server configuration and document roots.
+  //
+  // `.htaccess`/`.htpasswd` are Apache's files, not PHP's -- they merely happen
+  // to appear most often on LAMP stacks. Classifying them as php contradicted
+  // rule 2 (a path is classified by what it IS), and split them from the rest of
+  // the Apache config they belong with.
+  //
+  // Document roots are server configuration for the same reason, which is what
+  // already put `/usr/share/nginx/html/` here. `/var/www/` was here while
+  // `/var/www/html/` sat in linux/, which was the same value in two folders.
+  // A `.php` file UNDER a docroot is still php: LANGUAGE_RULES run first.
+  ".htaccess",
+  ".htpasswd",
+  "/var/www",
+  "/htdocs",
+  "/public_html",
   // web servers and reverse proxies
   "nginx",
   "apache",

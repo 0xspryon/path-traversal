@@ -619,7 +619,7 @@ const CURATED: ReadonlyArray<CuratedSection> = [
  * decomposable prefix or suffix. Kept so `pt-full.yml` is a superset of the
  * scaffold rather than a divergent fork of it.
  */
-const EXTRA_PREFIXES = ["/var/www/html/", "/var/www/images/", "///////"] as const
+const EXTRA_PREFIXES = ["///////"] as const
 
 /**
  * Curated document roots, as `[value, file, section title]`.
@@ -642,6 +642,11 @@ const CURATED_PREFIXES: ReadonlyArray<readonly [string, string, string]> = [
   ],
   ["/usr/share/nginx/html/", "devops/prefix.txt", "Document roots a web or application server maps"],
   ["/var/www/", "devops/prefix.txt", "Document roots a web or application server maps"],
+  // These two were EXTRA_PREFIXES, which land in linux/, while `/var/www/` just
+  // above was curated into devops/ -- the same document root in two folders. A
+  // docroot is server configuration wherever it happens to live on disk.
+  ["/var/www/html/", "devops/prefix.txt", "Document roots a web or application server maps"],
+  ["/var/www/images/", "devops/prefix.txt", "Document roots a web or application server maps"],
   ["/srv/http/", "devops/prefix.txt", "Document roots a web or application server maps"],
   ["/opt/tomcat/webapps/ROOT/", "devops/prefix.txt", "Document roots a web or application server maps"],
   ["/app/", "devops/prefix.txt", "Document roots a web or application server maps"],

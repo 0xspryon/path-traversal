@@ -30,7 +30,12 @@ describe("classifyTarget", () => {
     ["/opt/homebrew/etc/nginx/nginx.conf", "macos"],
     // Rule 2 -- runtime, then infrastructure, then distro.
     ["/etc/php/8.3/cli/php.ini", "language:php"],
-    ["/.htaccess", "language:php"],
+    // Apache's file, not PHP's -- it only looks like PHP's because it is most
+    // often met on a LAMP stack. Rule 2 classifies a path by what it IS.
+    ["/.htaccess", "devops"],
+    ["/.htpasswd", "devops"],
+    // A .php file under a document root is still php: LANGUAGE_RULES run first.
+    ["/var/www/html/index.php", "language:php"],
     ["/WEB-INF/web.xml", "language:java"],
     ["/etc/mono/2.0/web.config", "language:dotnet"],
     ["/root/.pypirc", "language:python"],

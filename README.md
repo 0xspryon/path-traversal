@@ -945,7 +945,7 @@ corpus.
 
 `target-hot.txt` and `target-encoded.txt` are **measurements**, not opinions:
 `classesOf()` classifies every reference entry and the files are the targets that
-fall out. That is what sizes the config — see §7 of COVERAGE.md.
+fall out. That is what sizes the config — see §11 of COVERAGE.md.
 
 Two things to know about the layout:
 
@@ -1020,7 +1020,7 @@ The report also prints two things the gap table cannot say:
 
 ### What the checker found
 
-Two things worth knowing, both in COVERAGE.md §5:
+Two things worth knowing, both in COVERAGE.md §8:
 
 1. **`partial-dots` has no strategy in the catalog.** `selective_*` only treats
    separators as candidates, so nothing named in the catalog encodes a dot while
