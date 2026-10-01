@@ -1,0 +1,53 @@
+{
+  "//name": "The npm name 'pt' is squatted (published at 0.0.0 and unavailable), so the package ships as 'pathtraversal'. The BINARY is still 'pt' -- see the 'bin' field below -- so `npm i -g pathtraversal` gives you a working `pt` command. Rename this field if you would rather publish under your own scope, e.g. '@you/pt'.",
+  "name": "pathtraversal",
+  "version": "0.1.0",
+  "description": "Generate path-traversal payload wordlists for Caido/Burp: an ordered list of named slots chooses which path you ask for, an ordered union of named strategies chooses how it is spelled on the wire.",
+  "keywords": [
+    "path-traversal",
+    "directory-traversal",
+    "lfi",
+    "wordlist",
+    "payload",
+    "fuzzing",
+    "caido",
+    "burp",
+    "security",
+    "pentest",
+    "appsec",
+    "cli"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "pt": "./dist/pt.js"
+  },
+  "//files": "skills/ ships so an agent that installs pt finds the recon-first workflow next to the binary. templates/ does NOT ship: `pt --generate-basic-config` writes its own seeds, and the harvested corpus is a repo artifact rebuilt by scripts/harvest-wordlists.ts.",
+  "files": [
+    "dist/pt.js",
+    "skills/path-traversal/SKILL.md",
+    "README.md",
+    "NOTES.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "bun build ./src/cli.ts --target=node --outfile ./dist/pt.js --minify-whitespace --minify-syntax",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "prepublishOnly": "bun run typecheck && bun test && bun run build",
+    "check": "bun run typecheck && bun test && bun run build && bun run scripts/check-package.ts"
+  },
+  "//devDependencies": "effect and yaml are bundled into dist/pt.js by `bun build`, so an install of this package pulls nothing at runtime.",
+  "devDependencies": {
+    "@effect/platform-node": "4.0.0",
+    "@types/bun": "latest",
+    "effect": "4.0.0",
+    "yaml": "^2.9.1"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

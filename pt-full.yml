@@ -1,0 +1,234 @@
+# pt-full.yml -- the harvested corpus wired up as a generator
+#
+#   pt --config ./pt-full.yml --dry-run     # count, and see what each block earns
+#   pt --config ./pt-full.yml               # write ./wordlist/pt_full_wordlist.txt
+#   bun run scripts/coverage-check.ts       # prove it covers the reference lists
+#
+# Templates come from `bun run scripts/harvest-wordlists.ts`, which reads 20
+# public LFI wordlists (SecLists + PayloadsAllTheThings) and decomposes every
+# entry into pt's slots, splitting them across FIVE stack categories:
+#
+#   templates/windows/   templates/macos/   templates/linux/
+#   templates/language/  templates/devops/
+#
+# Each file carries its own source header and line count. This config is the one
+# that deliberately IGNORES that split: its job is to cover the whole reference
+# corpus, so it unions every category back together. A config you build for a
+# real target does the opposite -- see skills/path-traversal/SKILL.md, which is
+# the recon-first workflow the folders exist for.
+#
+# Note that `pt --generate-basic-config` scaffolds the same template paths with
+# small seeds, so point it at a fresh directory rather than at this repo. If you
+# clobber the harvest, re-running the harvest script restores it from the cache.
+#
+# ---------------------------------------------------------------------------
+# Why this file is mostly per-strategy slot overrides
+# ---------------------------------------------------------------------------
+# The harvest is lopsided, and it is lopsided for a real reason: 14,587 of the
+# corpus's 14,608 distinct targets appear ONLY as bare absolute paths, while the
+# encoded classes between them ask for 23. A uniform matrix over
+# all 15,913 target lines x all 185 traversal primitives x all 52 prefixes
+# would cost 2.9M payloads PER STRATEGY to buy coverage nobody asked for.
+#
+# So the big files are paired with small ones, one block per question:
+#
+#   block                       what it proves                   cost
+#   bare paths, per category    every target is reachable        ~15.9k
+#   traversal x hot targets     the 873 non-bare targets         ~7k
+#   suffixes x hot targets      %00 / fake-extension coverage    ~26k
+#   every traversal x core      all 185 harvested primitives     ~6k
+#   every prefix x core         all 52 prefixes                  ~12k
+#   each rewrite strategy       its own spelling of the core     ~1.1k each
+#
+# scripts/coverage-check.ts is what makes this honest: it reports, per
+# (resolved target, technique class), whether the output contains a payload.
+
+# --- slots ------------------------------------------------------------------
+# An ORDERED LIST of positions, kept SMALL on purpose. Every block that wants a
+# big file names it explicitly, so no strategy can silently inherit a
+# 15,913-entry cross product.
+#
+# 'prefix' and 'suffix' name no files at all: with 'optional: true' that leaves
+# exactly the empty member, which is what pt v1 needed a real empty.txt on disk
+# to express.
+slots:
+  - name: prefix
+    files: []
+    optional: true
+
+  # ONE rung, not four.
+  #
+  # `..` in the root directory is the root itself on POSIX, and Windows clamps
+  # identically, so overshooting is free and depth 8 covers every shallower depth
+  # the reference lists use. The ladder in the default config exists to survive
+  # filters that strip or collapse sequences; here the strategy union does that
+  # job, so extra rungs would multiply the wordlist for nothing. `readlink -m
+  # /../../../../etc/passwd` is `/etc/passwd`.
+  - name: traversal
+    files: [./templates/traversal-core.txt]
+    optional: true
+    repeat: [8]
+
+  # The one required slot. 'when_same_separator' is what keeps
+  # '..%5c..%5c..%5c/boot.ini' intact -- 294 corpus entries put a '\'-class
+  # separator in front of a literal '/' target and mean both of them.
+  - name: target
+    files: [./templates/target-core.txt]
+    strip_leading_separator: when_same_separator
+
+  # PER-SEGMENT protection: a payload holding a literal suffix still gets its
+  # traversal and target rewritten, which is the whole point of the feature.
+  # The protection lives here, on the slot, rather than in a path-keyed list.
+  - name: suffix
+    files: []
+    optional: true
+    transform: false
+
+# 147 entries that no `traversal x repeat` produces -- every one is a clean
+# repetition that breaks at its last step, e.g. twelve `..%25%5c` steps followed
+# by one `..%255c`, or a chain whose last step drops the `/.` noise the others
+# carry. Emitted verbatim because the generative model cannot reach them. It was
+# 398 until the leading-separator strip stopped being greedy: 251 of those entries
+# were a DOUBLED JUNCTION ('../../..//etc/passwd') and nothing else, which is now
+# an ordinary target of '//etc/passwd'. Split by separator family like every
+# other dimension: 95 Win32 payloads, 52 POSIX ones.
+raw_file:
+  - ./templates/windows/raw.txt
+  - ./templates/linux/raw.txt
+
+# --- strategies ------------------------------------------------------------
+# An ordered UNION. Order is priority, because a fuzzer fires top-down.
+#
+# Every entry is a SCALAR STRING: a pipeline, then optional per-slot overrides
+# after a '|'. 'slot=' with nothing after it turns that slot off for this entry.
+#
+# The first blocks are COVERAGE blocks: all `plain`, differing only in which slot
+# files they pull in. Listing `plain` more than once is fine -- dedupe is
+# first-wins, so a payload two blocks both emit appears once, at its earliest
+# position. It is also what lets --dry-run attribute payloads PER CATEGORY: one
+# `plain` line per template folder, so the report says what each stack dimension
+# is worth.
+strategies:
+  # 1. Every harvested target as a bare absolute path, one line per template
+  #    folder. 14,587 of the corpus's targets never appear with anything else, so
+  #    these blocks are most of the corpus by line count and almost none of it by
+  #    interest.
+  #
+  #    A config built for a REAL target keeps only the folders recon found. This
+  #    one keeps all of them, because its job is to cover the reference corpus.
+  - "plain | target=./templates/linux/target.txt, traversal="
+  - "plain | target=./templates/windows/target.txt, traversal="
+  - "plain | target=./templates/macos/target.txt, traversal="
+  - "plain | target=./templates/devops/target.txt, traversal="
+  - "plain | target=./templates/language/target-php.txt, traversal="
+  - "plain | target=./templates/language/target-java.txt, traversal="
+  - "plain | target=./templates/language/target-dotnet.txt, traversal="
+  - "plain | target=./templates/language/target-python.txt, traversal="
+  - "plain | target=./templates/language/target-node.txt, traversal="
+  - "plain | target=./templates/language/target-ruby.txt, traversal="
+  - "plain | target=./templates/language/target-perl.txt, traversal="
+
+  # 2. The 873 targets the corpus pairs with something more than a bare path,
+  #    against the common traversal spellings.
+  - "plain | target=./templates/target-hot.txt"
+
+  # 3. The same targets with every harvested suffix: null bytes, fake
+  #    extensions, '?' and '#' truncators. Two traversals here, not eight --
+  #    the suffix is the variable under test.
+  - "plain | target=./templates/target-hot.txt, traversal=./templates/traversal-min.txt, suffix=./templates/language/suffix.txt, suffix=./templates/windows/suffix.txt"
+
+  # 4. All 185 harvested traversal primitives, both separator families plus the
+  #    one semicolon primitive. These carry their OWN spelling,
+  #    which is a different payload from the same spelling applied by a
+  #    strategy: '..%c0%af' here encodes only its own separator, while
+  #    `overlong_utf8` below rewrites the separators inside the target too.
+  - "plain | traversal=./templates/windows/traversal.txt, traversal=./templates/linux/traversal.txt, traversal=./templates/language/traversal-java.txt"
+
+  # 5. All 52 prefixes: document roots, separator padding, leading
+  #    null bytes, Win32 device and UNC preludes (\\.\, //?/, \\localhost\).
+  - "plain | prefix=./templates/windows/prefix.txt, prefix=./templates/linux/prefix.txt, prefix=./templates/devops/prefix.txt"
+
+  # --- rewrite strategies -------------------------------------------------
+  # Each one is a HYPOTHESIS about where the filter sits. They are alternatives,
+  # not ingredients, so they are a union and never a product. Each runs against
+  # target-core.txt UNIONED with target-encoded.txt -- the 92 targets the corpus
+  # itself writes with a respelled separator. That union is what closes the
+  # encoded-class gaps the first run of scripts/coverage-check.ts found, and it
+  # costs ~1,100 payloads per strategy instead of the 142,000 that handing them
+  # target-hot.txt would.
+  - "dot_noise | target=./templates/target-core.txt, target=./templates/target-encoded.txt"
+  - "double_slash | target=./templates/target-core.txt, target=./templates/target-encoded.txt"
+  - "backtrack | target=./templates/target-core.txt, target=./templates/target-encoded.txt"
+  - "matrix_param | target=./templates/target-core.txt, target=./templates/target-encoded.txt"
+  - "url_encode:1 | target=./templates/target-core.txt, target=./templates/target-encoded.txt"
+  - "url_encode:1 > hex_case_upper | target=./templates/target-core.txt, target=./templates/target-encoded.txt"
+  - "url_encode:2 | target=./templates/target-core.txt, target=./templates/target-encoded.txt"
+  - "url_encode:3 | target=./templates/target-core.txt, target=./templates/target-encoded.txt"
+  - "overlong_utf8 | target=./templates/target-core.txt, target=./templates/target-encoded.txt"
+  - "overlong_utf8(+dots) | target=./templates/target-core.txt, target=./templates/target-encoded.txt"
+  - "fullwidth | target=./templates/target-core.txt, target=./templates/target-encoded.txt"
+  - "path_case_upper | target=./templates/target-core.txt, target=./templates/target-encoded.txt"
+
+  # --- PARTIAL ENCODING -----------------------------------------------------
+  # Partial and full encoding are SIBLINGS, not a subset relation. Full encoding
+  # trips every filter signature; each partial form trips a strict subset:
+  #
+  #   payload                                literal..  %2e  %2e%2e  %2f
+  #   ../../../etc/passwd                    MATCH      -    -       -
+  #   ..%2f..%2f..%2fetc%2fpasswd            MATCH      -    -       MATCH
+  #   %2e%2e/%2e%2e/%2e%2e/etc/passwd        -          YES  YES     -
+  #   %2e%2e%2f%2e%2e%2fetc%2fpasswd         -          YES  YES     MATCH
+  #
+  # So emitting the fully-encoded form does NOT cover a partially-encoded one,
+  # and both halves need their own strategy.
+  #
+  # The dots half has no named strategy in the catalog at all: `selective_*` only
+  # considers SEPARATORS candidates, so nothing in the catalog encodes a dot while
+  # leaving the separator literal. The per-stage charset argument is the route --
+  # `url_encode:1(charset=".")` is exactly it, and since §4 landed it rides inside
+  # the stage instead of needing a mapping entry wrapped around the pipeline.
+  # Verified with scripts/coverage-check.ts: with these two lines and the
+  # pre-encoded primitives in traversal-full.txt both removed, `partial-dots`
+  # coverage falls from 100% to 33%.
+  - 'url_encode:1(charset=".") | target=./templates/target-core.txt, target=./templates/target-encoded.txt'
+  - 'url_encode:1(charset="/\\") | target=./templates/target-core.txt, target=./templates/target-encoded.txt'
+
+  # And all THREE selective variants, not just the default one. `selective_last`
+  # is the only one pt enables out of the box; the other two are different
+  # payloads, not weaker versions of it.
+  - "selective_first | target=./templates/target-core.txt, target=./templates/target-encoded.txt"
+  - "selective_last | target=./templates/target-core.txt, target=./templates/target-encoded.txt"
+  - "selective_alternating | target=./templates/target-core.txt, target=./templates/target-encoded.txt"
+
+  - "base64 | target=./templates/target-core.txt, target=./templates/target-encoded.txt"
+  - 'base64 > url_encode:1(charset="+/=") | target=./templates/target-core.txt, target=./templates/target-encoded.txt'
+
+  # Win32 strips a trailing space from the resolved name, and pt trims every
+  # input line, so a lone space cannot come from suffix-full.txt at all. The
+  # corpus has 473 targets that need it -- 470 of those lines are in the
+  # CrowdShield list alone -- so this runs against the hot target list.
+  - "trailing_space | target=./templates/target-hot.txt, traversal=./templates/traversal-min.txt"
+
+  # `trailing_dot` is NOT listed, on evidence rather than taste: --dry-run showed
+  # it contributing +0 unique payloads. The harvest found a literal '.' suffix in
+  # the reference lists, so block 3 already crosses it with every hot target, and
+  # a trailing dot appended to the target lands in exactly the same place. The
+  # technique is covered; the second route to it is not.
+  #   - trailing_dot
+
+  # Pads past PHP's 4096-byte path limit to truncate an appended '.php'.
+  # One rung, three targets: padding multiplies every payload's length.
+  - "padding:2048 | target=./templates/target-padding.txt, traversal=./templates/traversal-min.txt, traversal.repeat=3"
+
+# Characters percent-encoded by url_encode stages that set no 'charset=' of
+# their own.
+url_encode_charset: "./\\"
+
+# --- output ----------------------------------------------------------------
+output_file: ./wordlist/pt_full_wordlist.txt
+overwrite_output_file: true
+
+# --- limits ----------------------------------------------------------------
+limits:
+  warn_above: 250000
+  max_payloads: 500000
