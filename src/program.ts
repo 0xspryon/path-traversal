@@ -581,7 +581,7 @@ export const runAdd = (
     const rawPath = (): string => {
       if (config.rawFiles.length === 0) {
         throw new PtError(
-          `${configPath} has no 'raw_file', so there is nowhere to put a verbatim payload. Add 'raw_file: [./templates/raw.txt]' and create the file.`
+          `${configPath} has no 'raw_file', so there is nowhere to put a verbatim payload. Add 'raw_file: [./templates/linux/raw.txt]' and create the file.`
         )
       }
       return config.rawFiles[0]!

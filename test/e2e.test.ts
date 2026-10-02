@@ -59,12 +59,13 @@ describe("--generate-basic-config then --config", () => {
       "templates/language/target-java.txt",
       "templates/language/target-php.txt",
       "templates/linux/prefix.txt",
+      "templates/linux/raw.txt",
       "templates/linux/target.txt",
       "templates/linux/traversal.txt",
       "templates/macos/target.txt",
-      "templates/raw.txt",
       "templates/target-padding.txt",
       "templates/windows/prefix.txt",
+      "templates/windows/raw.txt",
       "templates/windows/suffix.txt",
       "templates/windows/target.txt",
       "templates/windows/traversal.txt"
@@ -248,7 +249,10 @@ describe("--generate-basic-config then --config", () => {
   })
 
   test("the raw entry is emitted verbatim and leads the file", () => {
-    expect(payloads[0]).toBe("..%c0%af..%c0%af..%c0%af..%c1%9cboot.ini")
+    // The default config reads linux + language + devops, so the verbatim entry
+    // that leads the file comes from templates/linux/raw.txt. The windows one is
+    // scaffolded alongside but not read until you switch.
+    expect(payloads[0]).toBe("./.././.././..//etc/passwd")
   })
 
   test("the '#.png' suffix survived the comment filter", () => {
@@ -565,7 +569,7 @@ describe("pt add", () => {
   test("--raw appends verbatim", async () => {
     const report = await add({ raw: ["..%25%5c..%25%5c..%255cboot.ini"] })
     expect(report.actions[0]!.target).toBe("raw_file")
-    expect(await read("templates/raw.txt")).toContain("..%25%5c..%25%5c..%255cboot.ini")
+    expect(await read("templates/linux/raw.txt")).toContain("..%25%5c..%25%5c..%255cboot.ini")
   })
 
   test("--decompose splits a payload across slots", async () => {
@@ -588,7 +592,7 @@ describe("pt add", () => {
     expect(report.actions[0]!.outcome).toBe("routed-to-raw")
     expect(report.actions[0]!.target).toBe("raw_file")
     expect(report.actions[0]!.why).toMatch(/breaks at the last step/)
-    expect(await read("templates/raw.txt")).toContain("..%25%5c..%25%5c..%255cwin.ini")
+    expect(await read("templates/linux/raw.txt")).toContain("..%25%5c..%25%5c..%255cwin.ini")
   })
 
   test("--decompose keeps a '\\\\' traversal's target separator, as assemble does", async () => {

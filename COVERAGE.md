@@ -384,7 +384,7 @@ wrote .../templates/windows/traversal.txt
 wrote .../templates/windows/target.txt
 wrote .../templates/windows/suffix.txt
 wrote .../templates/macos/target.txt
-wrote .../templates/raw.txt
+wrote .../templates/linux/raw.txt
 wrote .../templates/target-padding.txt
 
 $ pt --config ./pt.yml

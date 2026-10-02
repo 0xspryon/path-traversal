@@ -766,7 +766,7 @@ than editing by hand:
   *real* `assemble` and accepts the split only if it rebuilds the payload byte for
   byte. Anything else goes to `raw_file` with the reason printed:
   ```
-  raw       raw_file   "..%25%5c..%25%5c..%25%5c..%255cwin.ini"  -> ./templates/raw.txt:17
+  raw       raw_file   "..%25%5c..%25%5c..%25%5c..%255cwin.ini"  -> ./templates/linux/raw.txt:17
              because a clean repetition that breaks at the last step: ..%25%5c | ..%25%5c | ..%25%5c | ..%255c
   ```
 

