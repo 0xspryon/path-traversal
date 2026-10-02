@@ -443,10 +443,14 @@ strategies:
   - plain                              # always first; most likely to just work
   - dot_noise                          # /./ -- beats sequence-matching filters
   - url_encode:1                       # filter checks before one decode
+  - 'url_encode:1(charset=".")'        # %2e%2e/ -- dots encoded, separator literal
+  - 'url_encode:1(charset="/\\\\")'    # ..%2f   -- separator encoded, dots literal
   - url_encode:1 > hex_case_upper      # %2F -- same byte, misses a lowercase blocklist
   - url_encode:2                       # two decodes after the check
   - overlong_utf8                      # %c0%af -- strict/lax decoder mismatch
+  - overlong_utf8 > hex_case_upper     # %C0%AF -- the same byte in the other case
   - fullwidth                          # %ef%bc%8f -- NFKC folds to '/' after the check
+  - fullwidth > hex_case_upper         # %EF%BC%8F
   - selective_last                     # beats "decode once, then check"
   - base64                             # app base64-decodes the parameter
   - 'base64 > url_encode:1(charset="+/=")'   # keep the blob intact in transit
@@ -486,7 +490,7 @@ overwrite_output_file: true
 
 # --- limits -----------------------------------------------------------------
 limits:
-  warn_above: 200000      # print a warning and the contribution report
+  warn_above: 250000      # print a warning and the contribution report
   max_payloads: 500000    # hard stop; raise deliberately
 `
 

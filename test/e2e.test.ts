@@ -621,7 +621,7 @@ describe("pt add", () => {
     expect(lines.has("/etc/krb5.keytab")).toBe(true)
     expect(lines.has("..%c0%af/..%c0%af/..%c0%af/etc/shadow%00.gif")).toBe(true)
     expect(lines.has("..%25%5c..%25%5c..%255cwin.ini")).toBe(true)
-  })
+  }, 30_000)
 
   test("an unknown slot name is an error that lists the real ones", async () => {
     const error = await failure(
